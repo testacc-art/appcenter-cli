@@ -23,31 +23,38 @@ import * as fs from "fs";
 import { McFusUploader } from "@appcenter/mc-fus-uploader";
 import { McFusFile, IWorker, McFusMessageLevel, McFusUploadState } from "@appcenter/mc-fus-uploader/out/src/mc-fus-uploader-types";
 import * as uuid from "uuid";
-import { Worker } from "worker_threads";
+//import { Worker } from "worker_threads";
 import "abort-controller/polyfill";
 
 const fetch = require("node-fetch");
+
+let Worker, WorkerNode;
+try {
+  Worker = require("Worker");
+  class WorkerNode extends Worker implements IWorker {
+    Domain: string = "";
+    set onmessage(value: (ev: MessageEvent) => any) {
+      super.addListener("message", value);
+    }
+    set onerror(value: () => any) {
+      super.addListener("error", value);
+    }
+    sendChunk(chunk: any, chunkNumber: number, url: string, correlationId: string): void {}
+    postMessage(message: any): void {
+      super.postMessage(message);
+    }
+    terminate(): void {
+      super.terminate();
+    }
+  }
+} catch (error) {
+
+}
 
 if (!globalThis.fetch) {
   globalThis.fetch = fetch;
 }
 
-export class WorkerNode extends Worker implements IWorker {
-  Domain: string = "";
-  set onmessage(value: (ev: MessageEvent) => any) {
-    super.addListener("message", value);
-  }
-  set onerror(value: () => any) {
-    super.addListener("error", value);
-  }
-  sendChunk(chunk: any, chunkNumber: number, url: string, correlationId: string): void {}
-  postMessage(message: any): void {
-    super.postMessage(message);
-  }
-  terminate(): void {
-    super.terminate();
-  }
-}
 
 export class File implements McFusFile {
   readonly name: string;
@@ -77,8 +84,9 @@ globalAsAny.window = {};
 
 // For the following two dependencies, we might want to move it to tests if we want to cover isBrowserSupported
 globalAsAny.window.File = File;
-
-globalAsAny.Worker = WorkerNode;
+if (typeof WorkerNode !== "undefined") {
+  globalAsAny.Worker = WorkerNode;
+}
 
 @help("Upload release binary and trigger distribution, at least one of --store or --group must be specified")
 export default class ReleaseBinaryCommand extends AppCommand {
@@ -462,8 +470,10 @@ export default class ReleaseBinaryCommand extends AppCommand {
         },
       };
       this.mcFusUploader = new McFusUploader(uploadSettings);
-      const worker = new WorkerNode(__dirname + "/release-worker.js");
-      this.mcFusUploader.setWorker(worker);
+      if (typeof WorkerNode !== "undefined") {
+         const worker =  new WorkerNode(__dirname + "/release-worker.js");
+         this.mcFusUploader.setWorker(worker);
+      }
       const testFile = new File(this.filePath);
       this.mcFusUploader.Start(testFile);
     });
