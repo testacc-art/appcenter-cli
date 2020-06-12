@@ -16,7 +16,7 @@ import { inspect } from "util";
 import * as _ from "lodash";
 import * as Path from "path";
 import * as Pfs from "../../util/misc/promisfied-fs";
-import { DefaultApp, getUser } from "../../util/profile";
+import { DefaultApp, getUser, Profile } from "../../util/profile";
 import { getPortalUploadLink, getPortalPatchUploadLink } from "../../util/portal/portal-helper";
 import { getDistributionGroup, addGroupToRelease } from "./lib/distribute-util";
 import { McFusUploader, McFile } from "./lib/mc-fus-uploader/mc-fus-uploader";
@@ -25,7 +25,7 @@ import "abort-controller/polyfill";
 import { environments } from "../../util/profile/environments";
 import fetch from "node-fetch";
 
-const debug = console.log;
+const debug = require("debug")("appcenter-cli:commands:distribute:release");
 
 @help("Upload release binary and trigger distribution, at least one of --store or --group must be specified")
 export default class ReleaseBinaryCommand extends AppCommand {
@@ -344,15 +344,9 @@ export default class ReleaseBinaryCommand extends AppCommand {
   private async createReleaseUpload(client: AppCenterClient, app: DefaultApp): Promise<any> {
     debug("Creating release upload");
     const profile = getUser();
-    const url = getPortalUploadLink(environments(this.environmentName).endpoint, app.ownerName, app.appName);
-    let accessToken = "";
-    if (this.token && this.token.length > 0) {
-      debug("From command line" + this.token.length);
-      accessToken = this.token;
-    } else if (profile) {
-      accessToken = await profile.accessToken;
-      debug("From profile" + accessToken.length);
-    }
+    const endpoint = await this.getEndpoint(profile);
+    const accessToken = await this.getToken(profile);
+    const url = getPortalUploadLink(endpoint, app.ownerName, app.appName);
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -405,14 +399,9 @@ export default class ReleaseBinaryCommand extends AppCommand {
   private async patchUpload(app: DefaultApp, uploadId: string): Promise<void> {
     debug("Patching the upload");
     const profile = getUser();
-    const url = getPortalPatchUploadLink(environments(this.environmentName).endpoint, app.ownerName, app.appName, uploadId);
-    let accessToken = "";
-    if (this.token && this.token.length > 0) {
-      console.log(this.token.length);
-      accessToken = this.token;
-    } else if (profile) {
-      accessToken = await profile.accessToken;
-    }
+    const endpoint = await this.getEndpoint(profile);
+    const accessToken = await this.getToken(profile);
+    const url = getPortalPatchUploadLink(endpoint, app.ownerName, app.appName, uploadId);
     const response = await fetch(url, {
       method: "PATCH",
       headers: {
@@ -452,14 +441,9 @@ export default class ReleaseBinaryCommand extends AppCommand {
     try {
       debug("Loading release id...");
       const profile = getUser();
-      const url = getPortalPatchUploadLink(environments(this.environmentName).endpoint, app.ownerName, app.appName, uploadId);
-      let accessToken = "";
-      if (this.token && this.token.length > 0) {
-        console.log(this.token.length);
-        accessToken = this.token;
-      } else if (profile) {
-        accessToken = await profile.accessToken;
-      }
+      const endpoint = await this.getEndpoint(profile);
+      const accessToken = await this.getToken(profile);
+      const url = getPortalPatchUploadLink(endpoint, app.ownerName, app.appName, uploadId);
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -471,6 +455,26 @@ export default class ReleaseBinaryCommand extends AppCommand {
     } catch (error) {
       throw failure(ErrorCodes.Exception, `failed to get release id for upload id: ${uploadId}, error: ${JSON.stringify(error)}`);
     }
+  }
+
+  private async getToken(profile: Profile): Promise<string> {
+    let accessToken = "";
+    if (this.token && this.token.length > 0) {
+      accessToken = this.token;
+    } else if (profile) {
+      accessToken = await profile.accessToken;
+    }
+    return accessToken;
+  }
+
+  private async getEndpoint(profile: Profile): Promise<string> {
+    let endpoint = "";
+    if (this.environmentName) {
+      endpoint = environments(this.environmentName).endpoint;
+    } else if (profile) {
+      endpoint = profile.endpoint;
+    }
+    return endpoint;
   }
 
   private async abortReleaseUpload(client: AppCenterClient, app: DefaultApp, uploadId: string): Promise<void> {
