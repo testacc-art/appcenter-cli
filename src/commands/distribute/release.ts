@@ -344,8 +344,8 @@ export default class ReleaseBinaryCommand extends AppCommand {
   private async createReleaseUpload(client: AppCenterClient, app: DefaultApp): Promise<any> {
     debug("Creating release upload");
     const profile = getUser();
-    let endpoint = await this.getEndpoint(profile);
-    let accessToken = await this.getToken(profile);
+    const endpoint = await this.getEndpoint(profile);
+    const accessToken = await this.getToken(profile);
     const url = getPortalUploadLink(endpoint, app.ownerName, app.appName);
     const response = await fetch(url, {
       method: "POST",
@@ -399,8 +399,8 @@ export default class ReleaseBinaryCommand extends AppCommand {
   private async patchUpload(app: DefaultApp, uploadId: string): Promise<void> {
     debug("Patching the upload");
     const profile = getUser();
-    let endpoint = await this.getEndpoint(profile);
-    let accessToken = await this.getToken(profile);
+    const endpoint = await this.getEndpoint(profile);
+    const accessToken = await this.getToken(profile);
     const url = getPortalPatchUploadLink(endpoint, app.ownerName, app.appName, uploadId);
     const response = await fetch(url, {
       method: "PATCH",
@@ -441,8 +441,8 @@ export default class ReleaseBinaryCommand extends AppCommand {
     try {
       debug("Loading release id...");
       const profile = getUser();
-      let endpoint = await this.getEndpoint(profile);
-      let accessToken = await this.getToken(profile);
+      const endpoint = await this.getEndpoint(profile);
+      const accessToken = await this.getToken(profile);
       const url = getPortalPatchUploadLink(endpoint, app.ownerName, app.appName, uploadId);
       const response = await fetch(url, {
         method: "GET",
