@@ -12,8 +12,9 @@ Describe "distribute release" {
     "DummyData" | Out-File -FilePath $fileName
 
     # Act
-    $r1 = appcenter distribute release -g Collaborators -f $fileName --build-version 1 --mandatory --output json | ConvertFrom-Json
-
+    $r1 = appcenter distribute release -g Collaborators -f $fileName --build-version 1 --mandatory --output json
+    # | ConvertFrom-Json
+    Write-Host $r1
     # Assert
     $group = appcenter distribute groups show -g Collaborators --output json | ConvertFrom-Json
     $r2 = $group[1].tables | Where-Object {$_.id -eq $r1.id}
