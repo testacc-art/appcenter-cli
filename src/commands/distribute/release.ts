@@ -25,7 +25,7 @@ import "abort-controller/polyfill";
 import { environments } from "../../util/profile/environments";
 import fetch from "node-fetch";
 
-const debug = require("debug")("appcenter-cli:commands:distribute:release");
+const debug = console.log;
 
 @help("Upload release binary and trigger distribution, at least one of --store or --group must be specified")
 export default class ReleaseBinaryCommand extends AppCommand {
