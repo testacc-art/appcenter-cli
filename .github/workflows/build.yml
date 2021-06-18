@@ -8,15 +8,21 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-18.04, macos-latest, windows-latest]
-        version: [ '12.x', '14.x', '16.x' ]
+        version: [ '12.x', '14.x' ]
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-
-    - uses: dmitry-shibanov/setup-node@add-caching
+    - name: Generate yarn file
+      run: yarn install
+    - name: Remove dependencies
+      shell: pwsh
+      run: Remove-Item node_modules -Force -Recurse
+    - name: Clean global cache
+      run: yarn cache clean --all
+    - uses: akv-platform/setup-node@add-caching-for-node-dependencies
       with:
         node-version: ${{ matrix.version }}
-        cache: npm
+        cache: yarn
     - name: Node version
       shell: pwsh
       run: node --version
@@ -26,4 +32,4 @@ jobs:
       shell: pwsh
       run: npm --version
     - name: Install dependencies
-      run: npm install
+      run: yarn install
